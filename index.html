@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhotonBench — CS184/284A Final Project Proposal</title>
+<style>
+  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 24px; line-height: 1.55; color: #1d1d1f; }
+  h1 { font-size: 2.1em; margin-bottom: 0.1em; }
+  .subtitle { font-size: 1.15em; color: #555; margin-top: 0; }
+  h2 { border-bottom: 2px solid #e5e5e5; padding-bottom: 4px; margin-top: 2em; }
+  h3 { margin-top: 1.4em; }
+  h4 { margin-bottom: 0.3em; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 0.95em; }
+  th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f5f5f7; }
+  .team { background: #f5f5f7; padding: 12px 16px; border-radius: 8px; }
+  @media print { body { margin: 0; } h2, h3 { page-break-after: avoid; } table { page-break-inside: avoid; } }
+</style>
+</head>
+<body>
+
+<h1>PhotonBench</h1>
+<p class="subtitle">Do Generative Image Models Obey the Laws of Light? A Ground-Truth Rendering Benchmark</p>
+
+<div class="team">
+  <strong>Team:</strong> Om Gole, Naima Hammad, Peter Choi, Ray Sun<br>
+  <strong>Proposal webpage:</strong> <a href="https://[your-github-pages-url]">https://[your-github-pages-url]</a>
+</div>
+
+<h2>Summary</h2>
+<p>Image generation models have gotten incredibly good at producing realistic-looking images, but how well do they actually understand the physics of light?</p>
+<p>For our project, we want to find out. We'll build a system that generates simple 3D scenes using our CS184 path tracer, giving us both physically accurate renders and ground-truth information about lighting, geometry, shadows, and reflections. We'll then use these scenes to test whether popular image generation and editing models can handle tasks like adding objects, changing light sources, and producing accurate reflections.</p>
+<p>Our end goal is PhotonBench, a benchmark that measures how well these models follow the laws of light. We'll build automated tools to score their outputs, compare performance across models, and put together a gallery of interesting failure cases.</p>
+
+<h2>Problem Description</h2>
+<p>Modern image generation models can produce images that look almost indistinguishable from real photographs. But looking realistic doesn't necessarily mean following the rules of physics.</p>
+<p>For example, a model might generate a shadow that points in the wrong direction, leave out an object's reflection in a mirror, or render glass without properly distorting what's behind it. These mistakes might be easy to overlook in an ordinary image, but they become much more important when generated images are used for things like robotics training, visual effects, or image editing.</p>
+<p>The challenge is figuring out how to measure these errors objectively. With real photographs, we usually don't know the exact position of the lights or the geometry of the objects in the scene. That makes it difficult to say whether a generated shadow or reflection is physically correct without relying on human judgment.</p>
+<p>Our idea is to use computer graphics to create scenes where we already know the correct answer.</p>
+<p>Since we'll be rendering the scenes ourselves, we'll know exactly where the lights and objects are, what materials they're made of, and how the shadows and reflections should appear. We can then give image models controlled tasks and compare their outputs against what our renderer produces.</p>
+<p>For example, we could take a scene with a sphere and a single light source, ask a model to add another sphere, and check whether the new sphere casts a shadow in the correct direction. Or we could ask a model to move the light source and compare the result against a new render of the same scene with the light moved.</p>
+<p>We plan to approach this in three steps:</p>
+<ol>
+  <li><strong>Generate controlled scenes.</strong> We'll create simple scenes with different objects, materials, lighting setups, and camera positions. By changing one variable at a time, we can isolate what causes models to make mistakes.</li>
+  <li><strong>Test image models.</strong> We'll give models either a rendered image to edit or a text prompt describing a scene, then ask them to produce outputs that should follow specific physical constraints.</li>
+  <li><strong>Measure the results.</strong> We'll use information from our path tracer to build automatic checks for things like shadow direction, reflection placement, and relighting accuracy. We'll also compare these scores against human judgments to see how reliable our metrics are.</li>
+</ol>
+
+<h2>Goals and Deliverables</h2>
+
+<h3>Benchmark Tasks</h3>
+<p>We want to evaluate several aspects of how models handle lighting and geometry.</p>
+<table>
+  <tr><th>Task</th><th>What we ask the model to do</th><th>What we measure</th></tr>
+  <tr><td><strong>Shadow consistency</strong></td><td>Add an object to an existing rendered scene</td><td>Whether the new object's shadow points in the correct direction, measured using angular error and the percentage within 15°</td></tr>
+  <tr><td><strong>Relighting</strong></td><td>Change the position of a light source in a scene</td><td>How closely the result matches our ground-truth render, using shadow-mask IoU, LPIPS, and PSNR</td></tr>
+  <tr><td><strong>Mirror reflections</strong></td><td>Add an object to a scene containing a mirror</td><td>Whether the reflection appears and is positioned correctly</td></tr>
+  <tr><td><strong>Text-to-image physics</strong></td><td>Generate a scene from a prompt specifying objects and lighting</td><td>Whether shadows match the stated light direction and the scene has consistent perspective</td></tr>
+  <tr><td><strong>Refraction and caustics</strong> (stretch)</td><td>Generate or edit scenes containing glass objects</td><td>Whether the background distortion and caustics match the expected behavior</td></tr>
+</table>
+<p>We'll start with shadows, relighting, and text-to-image generation, since these give us a manageable set of tasks with fairly clear ways to measure correctness. If we have time, we'll expand to mirrors and refraction, which are more challenging to evaluate.</p>
+
+<h3>Planned Images and Demo</h3>
+<p>We want the results to be easy to understand visually, not just through numerical scores.</p>
+<p>Our final presentation will include:</p>
+<ul>
+  <li>Side-by-side comparisons of our ground-truth renders and model outputs, with overlays showing where shadows and reflections should appear.</li>
+  <li>A failure gallery highlighting particularly interesting mistakes, like shadows pointing toward lights or objects missing from mirrors.</li>
+  <li>Performance plots showing how model accuracy changes with light angle, scene complexity, and material type.</li>
+  <li>A live demo where we can choose a scene, move a light source, generate a new render, and compare a model's output against the expected result.</li>
+</ul>
+
+<h3>How We'll Measure Quality</h3>
+<p>There are three main things we want to measure.</p>
+<h4>1. Model performance</h4>
+<p>We'll evaluate at least four image generation or editing models, ideally including both commercial APIs and open-weight models. Each model will receive per-task scores, and we'll create an overall leaderboard to compare performance.</p>
+<h4>2. Reliability of our evaluation</h4>
+<p>An important part of this project is making sure our automatic metrics actually reflect physical correctness. We plan to manually review around 150 model outputs and compare our judgments with the automatic scores. We'll measure agreement using classification accuracy and Cohen's κ.</p>
+<h4>3. Correctness of our renderer</h4>
+<p>Since the entire benchmark depends on having reliable ground truth, we'll also validate our renderer's outputs against simple cases where the expected results can be calculated analytically. For example, we can check the shadow cast by a sphere under a point light.</p>
+
+<h3>Questions We Want to Answer</h3>
+<p>By the end of the project, we hope to answer a few questions:</p>
+<ol>
+  <li>Which aspects of lighting and geometry do current image models handle well, and where do they struggle?</li>
+  <li>Do models become less physically accurate as we introduce more objects, unusual lighting angles, or complicated materials?</li>
+  <li>Are image editing models better at maintaining physical consistency than models generating images entirely from text?</li>
+  <li>How closely can automatic geometric checks match human judgments of whether an image is physically plausible?</li>
+</ol>
+
+<h3>(1) What We Plan to Deliver (Baseline)</h3>
+<p>Our baseline goal is to build a working benchmark that can generate scenes, test models, and score their results end-to-end.</p>
+<p>Specifically, we plan to deliver:</p>
+<ul>
+  <li>A procedural scene generator that randomizes object positions, materials, lights, and cameras.</li>
+  <li>Extensions to our CS184 path tracer that output depth maps, surface normals, object IDs, shadow masks, and other ground-truth information.</li>
+  <li>Three working benchmark tasks: shadow consistency, relighting, and text-to-image physics.</li>
+  <li>A dataset of approximately 500 generated scenes.</li>
+  <li>Automatic scoring tools for each task, with a subset of results checked against human labels.</li>
+  <li>An evaluation of at least four models, including a leaderboard, performance plots, and examples of common failures.</li>
+</ul>
+
+<h3>(2) What We Hope to Deliver (Stretch)</h3>
+<p>If we finish the core benchmark early, there are several directions we'd like to explore.</p>
+<ul>
+  <li><strong>Mirrors and refraction:</strong> Expand the benchmark to evaluate reflection placement, glass distortion, and caustics.</li>
+  <li><strong>Faster rendering:</strong> Experiment with GPU acceleration or compare our renderer against Mitsuba 3 to generate larger datasets.</li>
+  <li><strong>Video generation:</strong> Test whether models maintain consistent shadows as objects, lights, or cameras move over time.</li>
+  <li><strong>Interactive website:</strong> Build a viewer where people can browse scenes, compare model outputs, and explore failure cases.</li>
+  <li><strong>Improving model outputs:</strong> Experiment with using our ground-truth shadow masks to guide image editing and see whether we can improve physical consistency.</li>
+</ul>
+
+<h2>Schedule</h2>
+
+<h3>Week 1 (Nov 13–19): Build the rendering pipeline</h3>
+<p>Our first priority is getting the scene generation and ground-truth pipeline working.</p>
+<ul>
+  <li>Extend our path tracer to output depth, normals, object IDs, and shadow masks.</li>
+  <li>Build a procedural scene generator and a simple format for describing scenes.</li>
+  <li>Finalize the benchmark tasks and prompts, and set up access to the models we want to test.</li>
+  <li>Generate our first 100 scenes and build an initial shadow-direction checker.</li>
+</ul>
+
+<h3>Week 2 (Nov 20–26): Get the benchmark working end-to-end</h3>
+<p>By the November 22 milestone, we want to have at least one task running from scene generation through model evaluation.</p>
+<ul>
+  <li>Complete the shadow consistency task on at least two models.</li>
+  <li>Prepare the milestone webpage, slides, and one-minute video.</li>
+  <li>Implement the relighting and text-to-image tasks.</li>
+  <li>Expand our dataset to approximately 500 scenes.</li>
+</ul>
+
+<h3>Week 3 (Nov 27–Dec 3): Run experiments and analyze results</h3>
+<p>Once the pipeline is working, we'll focus on evaluating models and understanding where they fail.</p>
+<ul>
+  <li>Run the benchmark across 4–6 models.</li>
+  <li>Manually label around 150 outputs to validate our automatic scoring.</li>
+  <li>Test how results change with different light angles, object counts, and materials.</li>
+  <li>Begin working on stretch goals if the core tasks are complete.</li>
+</ul>
+
+<h3>Week 4 (Dec 4–8): Final results and presentation</h3>
+<p>We'll use the final week to finish experiments and present what we learned.</p>
+<ul>
+  <li>Finalize the leaderboard, plots, and failure gallery.</li>
+  <li>Write the final report and produce a 1–2 minute project video by December 6.</li>
+  <li>Prepare our live demo and present the project on December 7–8.</li>
+</ul>
+
+<h2>Resources</h2>
+
+<h3>Starting Point</h3>
+<p>We'll build on the C++ path tracer we implemented for CS184. The renderer already provides the foundation for producing physically based images, so our main graphics work will be extending it to generate the ground-truth information we need.</p>
+<p>We'll build the procedural scene generator, benchmark tasks, scoring tools, and evaluation pipeline ourselves.</p>
+
+<h3>References</h3>
+<ul>
+  <li>Sarkar et al., <em>Shadows Don't Lie and Lines Can't Bend! Generative Models Don't Know Projective Geometry... for Now</em>, CVPR 2024.</li>
+  <li>Motamed et al., <em>Do Generative Video Models Understand Physical Principles?</em> (Physics-IQ), 2025.</li>
+  <li>Kee, O'Brien, and Farid, <em>Exposing Photo Manipulation with Inconsistent Shadows</em>, ACM Transactions on Graphics, 2013.</li>
+  <li>Pharr, Jakob, and Humphreys, <em>Physically Based Rendering: From Theory to Implementation</em>, 4th edition.</li>
+  <li>Kirillov et al., <em>Segment Anything</em>, ICCV 2023.</li>
+  <li>Mitsuba 3 renderer, <a href="https://mitsuba-renderer.org">https://mitsuba-renderer.org</a>.</li>
+</ul>
+
+<h3>Computing Platform</h3>
+<ul>
+  <li><strong>Rendering:</strong> We'll use our C++ path tracer, running on our laptops with multithreading. GPU acceleration is a possible stretch goal.</li>
+  <li><strong>Image models:</strong> We plan to test commercial image generation and editing APIs, such as OpenAI and Google models, along with open-weight models from the FLUX and Stable Diffusion families. For open-weight models, we'll use Google Colab or cloud GPUs.</li>
+  <li><strong>Evaluation:</strong> We'll use Python, NumPy, OpenCV, and PyTorch for image processing and scoring. We may also use Segment Anything to help isolate objects and shadows in model outputs. We'll use matplotlib to generate our plots.</li>
+  <li><strong>Website:</strong> We'll host the project webpage and results on GitHub Pages.</li>
+</ul>
+
+</body>
+</html>
